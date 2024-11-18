@@ -3,6 +3,8 @@ package app.aaps.wear
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener
+import android.os.Build
+import androidx.core.content.ContextCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.preference.PreferenceManager
 import app.aaps.core.interfaces.logging.AAPSLogger
@@ -31,7 +33,7 @@ class WearApp : DaggerApplication(), OnSharedPreferenceChangeListener {
         exceptionHandlerWear.register()
         aapsLogger.debug(LTag.WEAR, "onCreate")
         PreferenceManager.getDefaultSharedPreferences(this).registerOnSharedPreferenceChangeListener(this)
-        startService(Intent(this, DataLayerListenerServiceWear::class.java))
+        ContextCompat.startForegroundService(this,Intent(this, DataLayerListenerServiceWear::class.java))
     }
 
     override fun applicationInjector(): AndroidInjector<out DaggerApplication> =

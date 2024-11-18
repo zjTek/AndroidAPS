@@ -1,9 +1,17 @@
 package app.aaps.wear.comm
 
+import android.app.Notification
+import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.job.JobInfo.PRIORITY_MIN
+import android.content.Context
 import android.content.Intent
+import android.graphics.Color
+import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
+import androidx.annotation.RequiresApi
+import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
@@ -14,6 +22,7 @@ import app.aaps.core.interfaces.rx.events.EventWearToMobile
 import app.aaps.core.interfaces.rx.weardata.EventData
 import app.aaps.core.interfaces.rx.weardata.ZipWatchfaceFormat
 import app.aaps.core.interfaces.sharedPreferences.SP
+import app.aaps.wear.R
 import app.aaps.wear.interaction.utils.Persistence
 import app.aaps.wear.interaction.utils.WearUtil
 import com.google.android.gms.tasks.Tasks
@@ -61,11 +70,20 @@ class DataLayerListenerServiceWear : WearableListenerService() {
 
     private val rxPath get() = getString(app.aaps.core.interfaces.R.string.path_rx_bridge)
     private val rxDataPath get() = getString(app.aaps.core.interfaces.R.string.path_rx_data_bridge)
-
+    private val CHANNEL_ID = "PennSkanvTicChannel"
     @ExperimentalSerializationApi
     override fun onCreate() {
         AndroidInjection.inject(this)
         super.onCreate()
+        val channelId =
+            createNotificationChannel(CHANNEL_ID, CHANNEL_ID)
+
+        val notificationBuilder = NotificationCompat.Builder(this, channelId )
+        val notification = notificationBuilder.setOngoing(true)
+            .setPriority(PRIORITY_MIN)
+            .setCategory(Notification.CATEGORY_SERVICE)
+            .build()
+        startForeground(100,notification)
         handler.post { updateTranscriptionCapability() }
         disposable += rxBus
             .toObservable(EventWearToMobile::class.java)
@@ -79,6 +97,16 @@ class DataLayerListenerServiceWear : WearableListenerService() {
             .subscribe {
                 sendMessage(rxDataPath, it.payload.serializeByte())
             }
+    }
+
+    private fun createNotificationChannel(channelId: String, channelName: String): String{
+        val chan = NotificationChannel(channelId,
+                                       channelName, NotificationManager.IMPORTANCE_NONE)
+        chan.lightColor = Color.BLUE
+        chan.lockscreenVisibility = Notification.VISIBILITY_PRIVATE
+        val service = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        service.createNotificationChannel(chan)
+        return channelId
     }
 
     override fun onCapabilityChanged(p0: CapabilityInfo) {
